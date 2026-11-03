@@ -1,11 +1,31 @@
 # SalesHub - Deployment Guide
 
+## 🚀 Quick Deploy (2 commands)
+
+### Linux/Mac
+```bash
+chmod +x deploy.sh
+./deploy.sh
+```
+
+### Windows
+```powershell
+.\deploy.ps1
+```
+
+Or manual:
+```bash
+docker-compose -f docker-compose.production.yml --env-file .env.production up -d --build
+docker-compose -f docker-compose.production.yml exec app npx prisma migrate deploy
+docker-compose -f docker-compose.production.yml exec app node scripts/seedAdmin.js
+```
+
 ## Prerequisites
 - Docker & Docker Compose installed
 - Domain name (optional but recommended)
 - SMTP credentials for emails
 
-## Quick Deploy
+## Manual Deployment Steps
 
 ### 1. Clone repository
 ```bash
