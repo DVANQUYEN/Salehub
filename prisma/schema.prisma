@@ -1,0 +1,166 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id               String   @id @default(uuid())
+  email            String   @unique
+  password         String
+  fullName         String
+  role             UserRole @default(SALES)
+  isActive         Boolean  @default(true)
+  resetToken       String?
+  resetTokenExpiry DateTime?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  // A user (sales rep) can own many deals
+  deals Deal[]
+
+  // Files uploaded by this user
+  files File[]
+
+  @@map("users")
+}
+
+model Product {
+  id              String   @id @default(uuid())
+  name            String
+  description     String?
+  category        String?
+  price           Decimal  @db.Decimal(12, 2)
+  specifications  Json?    @default("{}")
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@map("products")
+}
+
+model Customer {
+  id          String          @id @default(uuid())
+  companyName String
+  contactName String?
+  email       String?
+  phone       String?
+  address     String?
+  status      CustomerStatus  @default(NEW)
+  deletedAt   DateTime?
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  // A customer can have many deals
+  deals Deal[]
+
+  @@map("customers")
+}
+
+model Deal {
+  id                String    @id @default(uuid())
+  title             String
+  customerId        String
+  salesRepId        String
+  stage             DealStage @default(LEAD)
+  value             Decimal   @db.Decimal(14, 2)
+  probability       Int       @default(0) // 0 - 100
+  expectedCloseDate DateTime?
+  deletedAt         DateTime?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  customer  Customer  @relation(fields: [customerId], references: [id], onDelete: Restrict)
+  salesRep  User      @relation(fields: [salesRepId], references: [id], onDelete: Restrict)
+  quotes    Quote[]
+  activities Activity[]
+
+  @@index([customerId])
+  @@index([salesRepId])
+  @@index([stage])
+  @@map("deals")
+}
+
+model Quote {
+  id          String      @id @default(uuid())
+  quoteNumber String      @unique
+  dealId      String
+  items       Json        @default("[]")
+  totalAmount Decimal     @db.Decimal(14, 2)
+  status      QuoteStatus @default(DRAFT)
+  validUntil  DateTime?
+  createdAt   DateTime    @default(now())
+
+  deal Deal @relation(fields: [dealId], references: [id], onDelete: Restrict)
+
+  @@index([dealId])
+  @@map("quotes")
+}
+
+model Activity {
+  id        String       @id @default(uuid())
+  dealId    String
+  type      ActivityType
+  notes     String?
+  createdAt DateTime     @default(now())
+
+  deal Deal @relation(fields: [dealId], references: [id], onDelete: Restrict)
+
+  @@index([dealId])
+  @@map("activities")
+}
+
+model File {
+  id           String   @id @default(uuid())
+  filename     String
+  originalName String
+  mimetype     String
+  size         Int
+  path         String
+  uploadedBy   String
+  createdAt    DateTime @default(now())
+
+  user User @relation(fields: [uploadedBy], references: [id], onDelete: Restrict)
+
+  @@index([uploadedBy])
+  @@map("files")
+}
+
+enum UserRole {
+  ADMIN
+  SALES
+  CUSTOMER
+}
+
+enum CustomerStatus {
+  NEW
+  CONTACTED
+  QUALIFIED
+  PROPOSAL
+  CLOSED
+}
+
+enum DealStage {
+  LEAD
+  QUALIFICATION
+  PROPOSAL
+  NEGOTIATION
+  CLOSED_WON
+  CLOSED_LOST
+}
+
+enum QuoteStatus {
+  DRAFT
+  SENT
+  ACCEPTED
+  REJECTED
+  EXPIRED
+}
+
+enum ActivityType {
+  CALL
+  EMAIL
+  MEETING
+}
