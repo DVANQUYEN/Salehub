@@ -49,11 +49,11 @@ jobs:
       - name: Verify image runs
         run: |
           docker run -d --name saleshub-test -p 3000:3000 \
+            -e NODE_ENV=development \
             -e PORT=3000 \
-            -e JWT_SECRET=test-secret-key-for-ci-only-1234567890 \
+            -e JWT_SECRET=ci-test-secret-key-that-is-at-least-32-chars \
             -e DATABASE_URL=postgresql://test:test@localhost:5432/test \
             saleshub:latest
-          sleep 5
+          sleep 10
           curl -f http://localhost:3000/health || (docker logs saleshub-test && exit 1)
-          docker stop saleshub-test
-          docker rm saleshub-test
+          docker rm -f saleshub-test
