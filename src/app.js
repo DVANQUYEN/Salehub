@@ -110,14 +110,30 @@ app.use(notFoundHandler);
  */
 app.use(errorHandler);
 
-/**
- * Start the server when this file is run directly (not imported for tests).
- */
-if (require.main === module) {
+const { autoSetup } = require('./utils/autoSetup');
+
+function startServer() {
   const PORT = process.env.PORT || 3000;
   server.listen(PORT, () => {
     logger.info(`SalesHub server running on port ${PORT} in ${process.env.NODE_ENV || 'development'} mode`);
   });
+}
+
+/**
+ * Start the server when this file is run directly (not imported for tests).
+ * In production, run migrations and seed first.
+ */
+if (require.main === module) {
+  if (process.env.NODE_ENV === 'production') {
+    autoSetup()
+      .then(startServer)
+      .catch((error) => {
+        logger.error('Auto-setup failed:', error);
+        process.exit(1);
+      });
+  } else {
+    startServer();
+  }
 }
 
 module.exports = { app, server };

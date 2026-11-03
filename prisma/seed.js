@@ -606,11 +606,37 @@ async function main() {
   });
 }
 
-main()
-  .catch((error) => {
-    console.error('Seeding failed:', error);
-    process.exit(1);
-  })
-  .finally(async () => {
+async function seed() {
+  await main();
+}
+
+async function autoSeed() {
+  try {
+    const userCount = await prisma.user.count();
+    if (userCount === 0) {
+      console.log('Database is empty, running seed...');
+      await seed();
+      console.log('Seed completed successfully');
+    } else {
+      console.log('Database already has data, skipping seed');
+    }
+  } catch (error) {
+    console.error('Seed failed:', error.message);
+    process.exitCode = 1;
+  } finally {
     await prisma.$disconnect();
-  });
+  }
+}
+
+if (process.env.NODE_ENV === 'production') {
+  autoSeed();
+} else if (require.main === module) {
+  seed()
+    .catch((error) => {
+      console.error('Seeding failed:', error);
+      process.exit(1);
+    })
+    .finally(async () => {
+      await prisma.$disconnect();
+    });
+}
